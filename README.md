@@ -1,150 +1,84 @@
-# SmartBackup - Django + Telegram Backup Application
+# SmartBackup
 
-A modern backup solution that automatically splits large files and uploads them to Telegram via bot API, with a beautiful web interface for management.
+A personal tool I built to back up files and folders to Telegram using a bot. It splits large files automatically, uploads them in chunks, and gives you a web UI to manage everything.
 
-## Features
+## What it does
 
-- 🤖 **Telegram Integration**: Upload backup parts to Telegram using bot API
-- 📁 **File Splitting**: Automatically splits files larger than 19MB to respect Telegram's download limits
-- 🌐 **Modern Web UI**: Clean, dark-themed interface built with Tailwind CSS
-- 👁️ **Watch Folder**: Automatic backups when files are dropped into watch folder
-- 💾 **SQLite Database**: Tracks backup history without external database requirements
-- 🔄 **Restore Functionality**: Download and restore backups from Telegram
-- ⚙️ **Easy Setup**: Step-by-step configuration for Telegram bot
+- Splits files larger than 19MB into chunks and uploads them to Telegram
+- Web interface to create backups, view history, restore, or delete
+- Auto-Backup Folder on your Desktop — drop anything in it and it backs up automatically
+- Tracks everything in a local SQLite database
 
-## Quick Start
+## Setup
 
-### 1. Install Dependencies
-
+**Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Database
-
+**Set up the database**
 ```bash
 python manage.py migrate
 ```
 
-### 3. Run the Application
-
+**Run the app**
 ```bash
 python manage.py runserver
 ```
 
-### 4. Access the Web Interface
+Then open http://localhost:8000 in your browser.
 
-Open your browser and navigate to: http://localhost:8000
+**Configure your Telegram bot**
 
-### 5. Setup Telegram Bot
+The app will walk you through this on first launch. You'll need to create a bot via @BotFather on Telegram and get your Chat ID. Instructions are shown in the app.
 
-Follow the on-screen setup instructions:
-1. Create a bot via @BotFather on Telegram
-2. Get your Chat ID from the Telegram Bot API
-3. Configure the bot in the web interface
+## Auto-Backup Folder
 
-### 6. Start the Watcher (Optional)
+A folder called `SmartBackupWatch` is created on your Desktop automatically. Anything you drop into it gets backed up to Telegram. The watcher starts automatically with the server.
 
-For automatic backups, run the watcher in a separate terminal:
-
+If you want to run it manually in a separate terminal instead:
 ```bash
 python manage.py start_watcher
 ```
 
-By default, it watches `~/Desktop/SmartBackupWatch` folder. You can customize this with:
+## Project structure
 
-```bash
-python manage.py start_watcher --watch-folder /path/to/your/folder
-```
-
-## API Endpoints
-
-The application provides REST API endpoints:
-
-- `POST /api/backup/` - Create a new backup
-- `GET /api/backups/` - List all backups
-- `POST /api/restore/<id>/` - Restore a backup
-- `DELETE /api/backups/<id>/` - Delete backup record
-- `GET /api/config/` - Get configuration status
-- `POST /api/config/save/` - Save configuration
-- `POST /api/config/test/` - Test Telegram connection
-
-## Project Structure
-
-```
 smart-bakcup/
-├── core/                 # Django project
-│   ├── settings.py       # Django configuration
-│   └── urls.py          # URL routing
-├── backup_app/          # Django app
-│   ├── models.py        # BackupRecord model
-│   ├── views.py         # API views
-│   ├── urls.py          # App URLs
+├── core/                   # Django project settings and URLs
+├── backup_app/             # Main app — models, views, API
 │   └── management/
 │       └── commands/
-│           └── start_watcher.py  # Watcher command
-├── templates/           # HTML templates
-│   └── index.html      # Main web interface
-├── config.py           # Configuration (MAX_SIZE fixed at 19MB)
-├── zipper.py           # ZIP creation
-├── splitter.py         # File splitting
-├── merger.py           # File merging
-├── telegram_uploader.py # Telegram upload
-├── telegram_downloader.py # Telegram download
-├── metadata.py         # Legacy metadata (replaced by Django model)
-└── requirements.txt    # Python dependencies
-```
+│           └── start_watcher.py
+├── templates/
+│   └── index.html          # The entire frontend
+├── config.py               # MAX_SIZE = 19MB, env loading
+├── zipper.py
+├── splitter.py
+├── merger.py
+├── telegram_uploader.py
+├── telegram_downloader.py
+└── requirements.txt
 
-## Important Notes
+## API endpoints
 
-### File Size Limits
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/backup/ | Start a new backup |
+| GET | /api/backups/ | List all backups |
+| POST | /api/restore/\<id\>/ | Restore a backup |
+| DELETE | /api/backups/\<id\>/ | Delete a backup record |
+| GET | /api/config/ | Check if bot is configured |
+| POST | /api/config/save/ | Save bot token and chat ID |
+| POST | /api/config/test/ | Send a test message via the bot |
 
-- **MAX_SIZE is set to 19MB** (not 45MB) to ensure compatibility with Telegram's download limits
-- Telegram bots can upload up to 50MB, but `getFile` API only supports files up to 20MB
-- Files larger than 19MB are automatically split into chunks
+## Notes
 
-### Security
+- MAX_SIZE is intentionally 19MB. Telegram lets bots upload up to 50MB but the download API (getFile) caps at 20MB. Keeping chunks at 19MB makes both work reliably.
+- The .env file stores your bot token and chat ID. Don't commit it.
+- The watcher has a 3-second delay before triggering a backup so it doesn't fire mid-copy.
 
-- Store your `.env` file securely and never commit it to version control
-- The application runs locally by default - configure `ALLOWED_HOSTS` for production use
+## Common issues
 
-### Watch Folder
-
-- The watcher uses a 3-second debounce to avoid triggering backups during file copying
-- Only newly added items are backed up, not the entire watch folder
-- Watcher activity is logged to the console
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Bot Token Invalid**: Double-check your bot token from @BotFather
-2. **Chat ID Not Found**: Ensure you've started a chat with your bot and get the correct Chat ID
-3. **Upload Fails**: Check that your bot has permission to send documents
-4. **Watcher Not Working**: Ensure the watch folder exists and is writable
-
-### Logs
-
-- Django logs are displayed in the console
-- Watcher logs are shown when running the watcher command
-- Backup progress is logged during operations
-
-## Development
-
-### Running Tests
-
-```bash
-python manage.py test
-```
-
-### Creating Superuser
-
-```bash
-python manage.py createsuperuser
-```
-
-Access admin interface at: http://localhost:8000/admin/
-
-## License
-
-This project is for personal use. Please ensure you comply with Telegram's terms of service when using their API.
+- **Invalid bot token** — copy it again from @BotFather, no extra spaces
+- **Wrong Chat ID** — make sure you've sent at least one message to your bot before fetching the Chat ID
+- **Upload failing** — check that your bot is the one you started a chat with, not a group or channel
