@@ -14,6 +14,16 @@ def upload_file(file_path):
     return response.json()
 
 
+def upload_single(file_path):
+    """Upload a single file and return the file_id"""
+    res = upload_file(file_path)
+    
+    if res.get("ok"):
+        return res["result"]["document"]["file_id"]
+    else:
+        raise Exception(f"Upload failed: {res}")
+
+
 def upload_multiple(files):
     results = []
 
